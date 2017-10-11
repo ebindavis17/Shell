@@ -1,0 +1,1 @@
+ this is  -- readable -- non zero string and -- owner 
