@@ -1,0 +1,89 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Generate Report - Pipeline",
+  "Parameters": {},
+  "Resources": {
+    "ArtifactBucket": {
+      "DeletionPolicy": "Delete",
+      "Type": "AWS::S3::Bucket"
+    },
+    "ArtifactBucketPolicy": {
+      "Properties": {
+        "Bucket": {
+          "Ref": "ArtifactBucket"
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Sid": "AllowAccessFromSourceAccount",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "arn:aws:iam::913545700946:root"
+              },
+              "Action": "s3:*",
+              "Resource": [
+                {
+                  "Fn::Sub": "${ArtifactBucket.Arn}"
+                },
+                {
+                  "Fn::Sub": "${ArtifactBucket.Arn}/*"
+                }
+              ]
+            },
+            {
+              "Sid": "DenyIncorrectEncryptionHeader",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:PutObject",
+              "Resource": {
+                "Fn::Sub": "${ArtifactBucket.Arn}/*"
+              },
+              "Condition": {
+                "StringNotEquals": {
+                  "s3:x-amz-server-side-encryption": "aws:kms"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "Type": "AWS::S3::BucketPolicy"
+    },
+    "KMSKey": {
+      "Type": "AWS::KMS::Key",
+      "Properties": {
+        "Description": {"Fn::Sub": "KMS Key for ${AWS::StackName}"},
+        "Enabled": true,
+        "EnableKeyRotation": true,
+        "KeyPolicy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "Allow access for Key Administrators",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": [
+                  {"Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/aab-administrator"},
+                  {"Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/sharedsvcsp-deployer"}
+                ]
+              },
+              "Action": [
+                "kms:Create*",
+                "kms:Describe*",
+                "kms:Enable*",
+                "kms:List*",
+                "kms:Put*",
+                "kms:Update*",
+                "kms:Revoke*",
+                "kms:Disable*",
+                "kms:Get*",
+                "kms:Delete*",
+                "kms:TagResource",
+                "kms:UntagResource",
+                "kms:ScheduleKeyDeletion",
+                "kms:CancelKeyDeletion"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Sid": "Allow enc

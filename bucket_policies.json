@@ -1,0 +1,95 @@
+{
+    "Version": "2008-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "arn:aws:iam::913545700946:role/aab-administrator"
+            },
+            "Action": "s3:*",
+            "Resource": "arn:aws:s3:::aab-linux-bastionhost-pkey/*"
+        }
+    ]
+}
+
+
+
+
+{
+    "Version": "2008-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "*"
+            },
+            "Action": [
+                "s3:ListBucket",
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:PutObjectAcl"
+            ],
+            "Resource": [
+                "arn:aws:s3:::aab-compliance-reports",
+                "arn:aws:s3:::aab-compliance-reports/*"
+            ],
+            "Condition": {
+                "StringEquals": {
+                    "aws:PrincipalOrgID": "o-h3friqrjvc"
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": [
+                    "arn:aws:iam::438908125245:root",
+                    "arn:aws:iam::846660817072:root",
+                    "arn:aws:iam::710135221420:root",
+                    "arn:aws:iam::996868193516:root",
+                    "arn:aws:iam::145199091356:root",
+                    "arn:aws:iam::205011823303:root",
+                    "arn:aws:iam::690762787000:root",
+                    "arn:aws:iam::444640145934:root",
+                    "arn:aws:iam::430442681156:root",
+                    "arn:aws:iam::529370137371:root",
+                    "arn:aws:iam::753773468360:root",
+                    "arn:aws:iam::109820128062:root",
+                    "arn:aws:iam::917740138688:root",
+                    "arn:aws:iam::627175348114:root",
+                    "arn:aws:iam::757700069017:root",
+                    "arn:aws:iam::512579018107:root",
+                    "arn:aws:iam::213361310488:root",
+                    "arn:aws:iam::913545700946:root",
+                    "arn:aws:iam::110535923373:root",
+                    "arn:aws:iam::853493370704:root",
+                    "arn:aws:iam::510005241452:root",
+                    "arn:aws:iam::750692453665:root",
+                    "arn:aws:iam::995208321268:root",
+                    "arn:aws:iam::703926814710:root",
+                    "arn:aws:iam::064670468982:root",
+                    "arn:aws:iam::015264156895:root",
+                    "arn:aws:iam::848939901609:root",
+                    "arn:aws:iam::624188900956:root",
+                    "arn:aws:iam::135725717884:root",
+                    "arn:aws:iam::632814889474:root",
+                    "arn:aws:iam::907826395456:root",
+                    "arn:aws:iam::672410507030:root",
+                    "arn:aws:iam::574439287843:root",
+                    "arn:aws:iam::415757711927:root",
+                    "arn:aws:iam::325411244799:root"
+                ]
+            },
+            "Action": [
+                "s3:ListBucket",
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:PutObjectAcl"
+            ],
+            "Resource": [
+                "arn:aws:s3:::aab-compliance-reports",
+                "arn:aws:s3:::aab-compliance-reports/*"
+            ]
+        }
+    ]
+}

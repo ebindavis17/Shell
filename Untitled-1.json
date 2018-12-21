@@ -1,0 +1,207 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "The AWS CloudFormation template for this Serverless application",
+    "Resources": {
+        "ServerlessDeploymentBucket": {
+            "Type": "AWS::S3::Bucket"
+        },
+        "SendPushLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+                "LogGroupName": "/aws/lambda/fcm-push-notification-sender-dev-sendPush"
+            }
+        },
+        "IamRoleLambdaExecution": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "lambda.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyName": {
+                            "Fn::Join": [
+                                "-",
+                                [
+                                    "dev",
+                                    "fcm-push-notification-sender",
+                                    "lambda"
+                                ]
+                            ]
+                        },
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "logs:CreateLogStream"
+                                    ],
+                                    "Resource": [
+                                        {
+                                            "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/fcm-push-notification-sender-dev-sendPush:*"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Resource": [
+                                        {
+                                            "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/fcm-push-notification-sender-dev-sendPush:*:*"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "sqs:DeleteMessage",
+                                        "sqs:ChangeMessageVisibility",
+                                        "sqs:ReceiveMessage",
+                                        "sqs:GetQueueAttributes",
+                                        "sqs:AddPermission"
+                                    ],
+                                    "Resource": "arn:aws:sqs:eu-west-1:995208321268:tikkie-nl-dev-push-notification-queue"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "Path": "/",
+                "RoleName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            "fcm-push-notification-sender",
+                            "dev",
+                            "eu-west-1",
+                            "lambdaRole"
+                        ]
+                    ]
+                },
+                "ManagedPolicyArns": [
+                    "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+                ]
+            }
+        },
+        "SendPushLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Code": {
+                    "S3Bucket": {
+                        "Ref": "ServerlessDeploymentBucket"
+                    },
+                    "S3Key": "serverless/fcm-push-notification-sender/dev/1537425544300-2018-09-20T06:39:04.300Z/fcm-push-notification-sender.zip"
+                },
+                "FunctionName": "fcm-push-notification-sender-dev-sendPush",
+                "Handler": "src/handler.sendPush",
+                "MemorySize": 1024,
+                "Role": {
+                    "Fn::GetAtt": [
+                        "IamRoleLambdaExecution",
+                        "Arn"
+                    ]
+                },
+                "Runtime": "nodejs8.10",
+                "Timeout": 6,
+                "VpcConfig": {
+                    "SecurityGroupIds": [
+                        {
+                            "Fn::ImportValue": "VPCCreate-DefaultSecurityGroup"
+                        }
+                    ],
+                    "SubnetIds": [
+                        {
+                            "Fn::ImportValue": "VPCCreate-PrivateSubnet1Id"
+                        },
+                        {
+                            "Fn::ImportValue": "VPCCreate-PrivateSubnet2Id"
+                        },
+                        {
+                            "Fn::ImportValue": "VPCCreate-PrivateSubnet3Id"
+                        }
+                    ]
+                }
+            },
+            "DependsOn": [
+                "SendPushLogGroup",
+                "IamRoleLambdaExecution"
+            ]
+        },
+        "SendPushLambdaVersion7h5ZnDyKHMcbZe3aFch57ZqnTrD2cGCTIObeNgVgE": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+                "FunctionName": {
+                    "Ref": "SendPushLambdaFunction"
+                },
+                "CodeSha256": "AFa7jbb890BFV1EoCvIKjFya0Z6KHDNRnhqSuaaMh1c="
+            }
+        },
+        "Queue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "QueueName": "tikkie-nl-dev-push-notification-queue"
+            }
+        },
+        "QueuePolicy": {
+            "Type": "AWS::SQS::QueuePolicy",
+            "Properties": {
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Id": "Queue1_Policy_UUID",
+                    "Statement": [
+                        {
+                            "Sid": "3",
+                            "Effect": "Allow",
+                            "Principal": {
+                                "AWS": [
+                                    {
+                                        "Fn::Sub": "${AWS::AccountId}"
+                                    }
+                                ]
+                            },
+                            "Action": [
+                                "sqs:*"
+                            ],
+                            "Resource": "*"
+                        }
+                    ]
+                },
+                "Queues": [
+                    {
+                        "Ref": "Queue"
+                    }
+                ]
+            }
+        }
+    },
+    "Outputs": {
+        "ServerlessDeploymentBucketName": {
+            "Value": {
+                "Ref": "ServerlessDeploymentBucket"
+            }
+        },
+        "SendPushLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+                "Ref": "SendPushLambdaVersion7h5ZnDyKHMcbZe3aFch57ZqnTrD2cGCTIObeNgVgE"
+            }
+        }
+    }
+}

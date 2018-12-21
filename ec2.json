@@ -1,0 +1,99 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Ec2 sample creation from the aab-vpc and creating a CW Event rule which will trigger an sns topic",
+    "Parameters": {
+        "myVPC": {
+            "Description": "Choose a VPC ",
+            "Type": "AWS::EC2::VPC::Id",
+            "Default": "vpc-bc6917da"
+        },
+        "Email": {
+            "Type": "String",
+            "Default": "ebin.davis@nl.abnamro.com",
+            "Description": "Email address to notify when EC2 Instance State-change happens"
+        },
+        "MySNSTopic": {
+            ""
+        }
+    },
+    "Resources": {
+        "MyEC2Instance": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "ImageId": "ami-09a5de9da82edc45a",
+                "KeyName": "ebin_eng1",
+                "InstanceType": "t2.micro",
+                "SubnetId": "subnet-9254e9f4",
+                "SecurityGroupIds": [
+                    {
+                        "Ref": "MynewSG"
+                    }
+                ]
+            }
+        },
+        "MynewSG": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupName": "bin-sg",
+                "GroupDescription": "bin-sg-test",
+                "VpcId": {
+                    "Ref": "myVPC"
+                },
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": 80,
+                        "ToPort": 80,
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ],
+                "SecurityGroupEgress": [
+                    {
+                        "IpProtocol": "-1",
+                        "FromPort": 0,
+                        "ToPort": 65535,
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ]
+            }
+        },
+        "EventPatternCW": {
+            "Type": "AWS::Events::Rule",
+            "Properties": {
+                "Description": "Event Pattern Rule ",
+                "EventPattern": {
+                    "detail-type": [
+                        "EC2 Instance State-change Notification"
+                    ]
+                },
+                "source": "aws.ec2",
+                "account": "123456789012",
+                "region": "eu-west-1",
+                "resources": [
+                    "arn:aws:ec2:us-west-1:123456789012:instance/ i-1234567890abcdef0"
+                ],
+                "detail": {
+                    "instance-id": " i-1234567890abcdef0"
+                },
+                "Targets": [
+                    {
+                        "Ref": "AlarmNotificationTopic"
+                    }
+                ],
+                "AlarmNotificationTopic": {
+                    "Type": "AWS::SNS::Topic",
+                    "Properties": {
+                        "Subscription": [
+                            {
+                                "Endpoint": {
+                                    "Ref": "Email"
+                                },
+                                "Protocol": "email"
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    }
+}

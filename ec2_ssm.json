@@ -1,0 +1,56 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Ec2 instance for ssm test",
+    "Parameters": {
+        "AMI": {
+            "Description": "Name of the AMI that is to be used to lauch the instance",
+            "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Instance>",
+            "Default": "cbsp-amznlinux-ec2-latest-ami"
+        },
+        "PrivateSubnet": {
+            "Description": "Name of the PrivateSubnet that is to be used to lauch the instance",
+            "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Subnet>",
+            "AllowedValues": [
+                "cbsp-private-subnet1-id",
+                "cbsp-private-subnet2-id",
+                "cbsp-private-subnet2-id"
+            ],
+            "Default": "cbsp-private-subnet1-id"
+        },
+        "VPC": {
+            "Description": "Name of the VPC that is to be used to lauch the instance",
+            "Type": "AWS::SSM::Parameter::Value<AWS::EC2::VPC::Id>",
+            "Default": "cbsp-vpc-id"
+        }
+    },
+    "Resources": {
+        "MyEC2Instance": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "ImageId": {
+                    "Ref": "AMI"
+                },
+                "IamInstanceProfile": "aab-ec2-base-instance-profile",
+                "InstanceType": "t2.micro",
+                "SecurityGroupIds": [
+                    {
+                        "Ref": "mysg"
+                    }
+                ],
+                "SubnetId": {
+                    "Ref": "PrivateSubnet"
+                }
+            }
+        },
+        "mysg": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupName": "mysgtest",
+                "GroupDescription": "Allow tcp22 to client host",
+                "VpcId": {
+                    "Ref": "VPC"
+                }
+            }
+        }
+    }
+}

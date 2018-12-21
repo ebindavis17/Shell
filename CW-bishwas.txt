@@ -1,0 +1,260 @@
+"AWSTemplateFormatVersion": "2010-09-09",
++    "Description": "AWS alarm for concurrent lambda execution",
++    "Resources": {
++        "MetricforConsoleLoginWithoutMFA": {
++            "Type": "AWS::Logs::MetricFilter",
++            "Properties": {
++                "FilterPattern": "{ $.eventName = \"ConsoleLogin\" && $.additionalEventData.MFAUsed != \"Yes\" }",
++                "LogGroupName": "aab-cloudtrail-logs",
++                "MetricTransformations": [
++                    {
++                        "MetricValue": "1",
++                        "MetricNamespace": "CloudTrailMetrics",
++                        "MetricName": "DetectLoginWithoutMFA"
++                    }
++                ]
++            }
++        },
++        "AlarmforConsoleLoginWithoutMFA": {
++            "Type": "AWS::CloudWatch::Alarm",
++            "Properties": {
++                "ActionsEnabled": "False",
++                "AlarmDescription": "Alarms when user logs into console without MFA.",
++                "AlarmName": "ConsoleLogin-MFAUsed",
++                "ComparisonOperator": "GreaterThanOrEqualToThreshold",
++                "MetricName": "DetectLoginWithoutMFA",
++                "EvaluationPeriods": "1",
++                "Namespace": "CloudTrailMetrics",
++                "Period": "300",
++                "Statistic": "Sum",
++                "Threshold": "1"
++            }
++        },
++        "IAMUnauthorizedAccessMetricFilter": {
++            "Type": "AWS::Logs::MetricFilter",
++            "Properties": {
++                "LogGroupName": "aab-cloudtrail-logs",
++                "FilterPattern": "{ ($.errorCode = \"*UnauthorizedOperation\") || ($.errorCode = \"AccessDenied*\") }",
++                "MetricTransformations": [
++                    {
++                        "MetricNamespace": "CloudTrailMetrics",
++                        "MetricName": "IAMUnauthorizedAccessEventCount",
++                        "MetricValue": "1"
++                    }
++                ]
++            }
++        },
++        "IAMUnauthorizedAccessAlarm": {
++            "Type": "AWS::CloudWatch::Alarm",
++            "Properties": {
++                "AlarmName": "IAMUnauthorizedAccessAlarm",
++                "AlarmDescription": "Alarms when Unauthorized user acess console or when a user is denied with access.",
++                "MetricName": "IAMUnauthorizedAccessEventCount",
++                "Namespace": "CloudTrailMetrics",
++                "ComparisonOperator": "GreaterThanOrEqualToThreshold",
++                "EvaluationPeriods": "1",
++                "Period": "300",
++                "Statistic": "Sum",
++                "Threshold": "1"
++            }
++        },
++        "RootAccountLoginMetricFilter": {
++            "Type": "AWS::Logs::MetricFilter",
++            "Properties": {
++                "LogGroupName": "aab-cloudtrail-logs",
++                "FilterPattern": "{ $.userIdentity.type = \"Root\" && $.userIdentity.invokedBy NOT EXISTS && $.eventType != \"AwsServiceEvent\" }",
++                "MetricTransformations": [
++                    {
++                        "MetricNamespace": "CloudTrailMetrics",
++                        "MetricName": "RootAccountLoginEventCount",
++                        "MetricValue": "1"
++                    }
++                ]
++            }
++        },
++        "RootAccountLoginAlarm": {
++            "Type": "AWS::CloudWatch::Alarm",
++            "Properties": {
++                "AlarmName": "RootAccountLoginAlarm",
++                "AlarmDescription": "Alarms when root (account) credentials are used..",
++                "MetricName": "RootAccountLoginEventCount",
++                "Namespace": "CloudTrailMetrics",
++                "ComparisonOperator": "GreaterThanOrEqualToThreshold",
++                "EvaluationPeriods": "1",
++                "Period": "300",
++                "Statistic": "Sum",
++                "Threshold": "1"
++            }
++        },
++        "S3BucketpolicychangesMetricFilter": {
++            "Type": "AWS::Logs::MetricFilter",
++            "Properties": {
++                "LogGroupName": "aab-cloudtrail-logs",
++                "FilterPattern": "{ ($.eventSource = s3.amazonaws.com) && (($.eventName = PutBucketAcl) || ($.eventName = PutBucketPolicy) || ($.eventName = PutBucketCors) || ($.eventName = PutBucketLifecycle) || ($.eventName = PutBucketReplication) || ($.eventName = DeleteBucketPolicy) || ($.eventName = DeleteBucketCors) || ($.eventName = DeleteBucketLifecycle) || ($.eventName = DeleteBucketReplication)) }",
++                "MetricTransformations": [
++                    {
++                        "MetricNamespace": "CloudTrailMetrics",
++                        "MetricName": "S3BucketActivityEventCount",
++                        "MetricValue": "1"
++                    }
++                ]
++            }
++        },
++        "S3BucketpolicychangesChangesAlarm": {
++            "Type": "AWS::CloudWatch::Alarm",
++            "Properties": {
++                "AlarmName": "CloudTrailSecurityGroupChanges",
++                "AlarmDescription": "Alarms when an API call is made to create, update or delete a Security Group.",
++                "MetricName": "S3BucketActivityEventCount",
++                "Namespace": "CloudTrailMetrics",
++                "ComparisonOperator": "GreaterThanOrEqualToThreshold",
++                "EvaluationPeriods": "1",
++                "Period": "300",
++                "Statistic": "Sum",
++                "Threshold": "1"
++            }
++        },
++        "GatewayChangesMetricFilter": {
++            "Type": "AWS::Logs::MetricFilter",
++            "Properties": {
++                "LogGroupName": "aab-cloudtrail-logs",
++                "FilterPattern": "{ ($.eventName = CreateCustomerGateway) || ($.eventName = DeleteCustomerGateway) || ($.eventName = AttachInternetGateway) || ($.eventName = CreateInternetGateway) || ($.eventName = DeleteInternetGateway) || ($.eventName = DetachInternetGateway) }",
++                "MetricTransformations": [
++                    {
++                        "MetricNamespace": "CloudTrailMetrics",
++                        "MetricName": "GatewayEventCount",
++                        "MetricValue": "1"
++                    }
++                ]
++            }
++        },
++        "GatewayChangesAlarm": {
++            "Type": "AWS::CloudWatch::Alarm",
++            "Properties": {
++                "AlarmName": "CloudTrailGatewayChanges",
++                "AlarmDescription": "Alarms when an API call is made to create, update or delete a Customer or Internet Gateway.",
++                "MetricName": "GatewayEventCount",
++                "Namespace": "CloudTrailMetrics",
++                "ComparisonOperator": "GreaterThanOrEqualToThreshold",
++                "EvaluationPeriods": "1",
++                "Period": "300",
++                "Statistic": "Sum",
++                "Threshold": "1"
++            }
++        },
++        "VpcChangesMetricFilter": {
++            "Type": "AWS::Logs::MetricFilter",
++            "Properties": {
++                "LogGroupName": "aab-cloudtrail-logs",
++                "FilterPattern": "{ ($.eventName = CreateVpc) || ($.eventName = DeleteVpc) || ($.eventName = ModifyVpcAttribute) || ($.eventName = AcceptVpcPeeringConnection) || ($.eventName = CreateVpcPeeringConnection) || ($.eventName = DeleteVpcPeeringConnection) || ($.eventName = RejectVpcPeeringConnection) || ($.eventName = AttachClassicLinkVpc) || ($.eventName = DetachClassicLinkVpc) || ($.eventName = DisableVpcClassicLink) || ($.eventName = EnableVpcClassicLink) }",
++                "MetricTransformations": [
++                    {
++                        "MetricNamespace": "CloudTrailMetrics",
++                        "MetricName": "VpcEventCount",
++                        "MetricValue": "1"
++                    }
++                ]
++            }
++        },
++        "VpcChangesAlarm": {
++            "Type": "AWS::CloudWatch::Alarm",
++            "Properties": {
++                "AlarmName": "CloudTrailVpcChanges",
++                "AlarmDescription": "Alarms when an API call is made to create, update or delete a VPC, VPC peering connection or VPC connection to classic.",
++                "MetricName": "VpcEventCount",
++                "Namespace": "CloudTrailMetrics",
++                "ComparisonOperator": "GreaterThanOrEqualToThreshold",
++                "EvaluationPeriods": "1",
++                "Period": "300",
++                "Statistic": "Sum",
++                "Threshold": "1"
++            }
++        },
++        "CloudTrailChangesMetricFilter": {
++            "Type": "AWS::Logs::MetricFilter",
++            "Properties": {
++                "LogGroupName": "aab-cloudtrail-logs",
++                "FilterPattern": "{ ($.eventName = CreateTrail) || ($.eventName = UpdateTrail) || ($.eventName = DeleteTrail) || ($.eventName = StartLogging) || ($.eventName = StopLogging) }",
++                "MetricTransformations": [
++                    {
++                        "MetricNamespace": "CloudTrailMetrics",
++                        "MetricName": "CloudTrailEventCount",
++                        "MetricValue": "1"
++                    }
++                ]
++            }
++        },
++        "CloudTrailChangesAlarm": {
++            "Type": "AWS::CloudWatch::Alarm",
++            "Properties": {
++                "AlarmName": "CloudTrailChanges",
++                "AlarmDescription": "Alarms when an API call is made to create, update or delete a CloudTrail trail, or to start or stop logging to a trail.",
++                "MetricName": "CloudTrailEventCount",
++                "Namespace": "CloudTrailMetrics",
++                "ComparisonOperator": "GreaterThanOrEqualToThreshold",
++                "EvaluationPeriods": "1",
++                "Period": "300",
++                "Statistic": "Sum",
++                "Threshold": "1"
++            }
++        },
++        "RouteTableChangesMetricFilter": {
++            "Type": "AWS::Logs::MetricFilter",
++            "Properties": {
++                "FilterPattern": "{ $.eventName = \"CreateRoute\" || $.eventName = \"CreateRouteTable\" ||$.eventName = \"ReplaceRoute\" ||$.eventName = \"ReplaceRouteTableAssociation\" ||$.eventName = \"DeleteRouteTable\" ||$.eventName = \"DeleteRoute\" ||$.eventName = \"DisassociateRouteTable\" }",
++                "LogGroupName": "aab-cloudtrail-logs",
++                "MetricTransformations": [
++                    {
++                        "MetricValue": "1",
++                        "MetricNamespace": "CloudTrailMetrics",
++                        "MetricName": "RouteTableChanges"
++                    }
++                ]
++            }
++        },
++        "AlarmforRouteTableChanges": {
++            "Type": "AWS::CloudWatch::Alarm",
++            "Properties": {
++                "ActionsEnabled": "False",
++                "AlarmDescription": "Alarms when RouteTableChanges occur",
++                "AlarmName": "RouteTableChanges",
++                "ComparisonOperator": "GreaterThanOrEqualToThreshold",
++                "MetricName": "RouteTableChanges",
++                "EvaluationPeriods": "1",
++                "Namespace": "CloudTrailMetrics",
++                "Period": "300",
++                "Statistic": "Sum",
++                "Threshold": "1"
++            }
++        },
++        "IAMPolicyChangesMetricFilter": {
++            "Type": "AWS::Logs::MetricFilter",
++            "Properties": {
++                "FilterPattern": "{($.eventName=\"DeleteGroupPolicy\")||($.eventName=\"DeleteRolePolicy\")||($.eventName=\"DeleteUserPolicy\")||($.eventName=\"PutGroupPolicy\")||($.eventName=\"PutRolePolicy\")||($.eventName=\"PutUserPolicy\")||($.eventName=\"CreatePolicy\")||($.eventName=\"DeletePolicy\")||($.eventName=\"CreatePolicyVersion\")||($.eventName=\"DeletePolicyVersion\")||($.eventName=\"AttachRolePolicy\")||($.eventName=\"DetachRolePolicy\")||($.eventName=\"AttachUserPolicy\")||($.eventName=\"DetachUserPolicy\")||($.eventName=\"AttachGroupPolicy\")||($.eventName=\"DetachGroupPolicy\")}",
++                "LogGroupName": "aab-cloudtrail-logs",
++                "MetricTransformations": [
++                    {
++                        "MetricValue": "1",
++                        "MetricNamespace": "CloudTrailMetrics",
++                        "MetricName": "IAMPolicyChanges"
++                    }
++                ]
++            }
++        },
++        "AlarmforIAMPolicyChangesChanges": {
++            "Type": "AWS::CloudWatch::Alarm",
++            "Properties": {
++                "ActionsEnabled": "False",
++                "AlarmDescription": "Alarms when IAM Policy Changes occur",
++                "AlarmName": "IAMPolicyChanges",
++                "ComparisonOperator": "GreaterThanOrEqualToThreshold",
++                "MetricName": "IAMPolicyChanges",
++                "EvaluationPeriods": "1",
++                "Namespace": "CloudTrailMetrics",
++                "Period": "300",
++                "Statistic": "Sum",
++                "Threshold": "1"
++            }
++        }
++    }
++}

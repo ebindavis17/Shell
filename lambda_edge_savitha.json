@@ -1,0 +1,145 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Beeldbankieren lambda@edge function",
+
+     
+    "Resources": {
+      "LambdaedgeFunction": {
+        "Type": "AWS::Lambda::Function",
+        "Properties": {
+          "Handler": "index.handler",
+          "FunctionName": "beeldbankierenLambdaedgefun",
+          "Description": "This function lamdaedge function.",
+          "Role": {
+            "Fn::GetAtt": [
+              "LambdaFunctionExecutionRole",
+              "Arn"
+            ]
+          },
+          "Code": {
+            "ZipFile": { "Fn::Join": ["", [
+                "'use strict';\n",
+              
+              "exports.handler = (event, context, callback) => {\n",
+                 " /*\n",
+                   "* Generate HTTP redirect response with 302 status code and Location header test.\n",
+                   "*/\n",
+                 " const response = {\n",
+                     " status: '302',\n",
+                     " statusDescription: 'Found',\n",
+                     " headers: {\n",
+                          "location: [{\n",
+                              "key: 'Location',",
+                             " value: 'http://www.abnamro.nl/beeldbankieren ',\n",
+                         " }],\n",
+                      "},\n",
+                  "};\n",
+                 " callback(null, response);\n",
+              "};\n"
+              
+              ]]}
+          },
+          "Runtime": "nodejs6.10",
+          "Timeout": "5",
+          "MemorySize": "128",
+          "TracingConfig": {
+            "Mode": "Active"
+          },
+          "Tags" : [{
+            "Key": "Billing code",
+            "Value": "NL02203"
+          },
+          {
+            "Key": "Block ID",
+            "Value": "BLK0001788"
+          },
+          {
+            "Key": "OAR/OPR ID",
+            "Value": "AAB.SYS.13242"
+          },
+          {
+            "Key": "Business Application CI",
+            "Value": "CI0001263"
+          },
+          {
+            "Key": "Environment",
+            "Value": "Production"
+          },
+          {
+            "Key": "Confidentiality",
+            "Value": "3"
+          },
+          {
+            "Key": "Integrity",
+            "Value": "2"
+          },
+          {
+            "Key": "Availability",
+            "Value": "3"
+          }]
+        }
+      },
+    
+      "LambdaedgeFunctionVersion": {
+         "Type": "AWS::Lambda::Version",
+           "Properties": {
+            "FunctionName": {
+              "Fn::GetAtt": [
+                "LambdaedgeFunction",
+                "Arn"
+              ]
+            },
+            "Description": "lambdaedge version"         }
+      },
+      "LambdaFunctionExecutionRole": {
+         "Type": "AWS::IAM::Role",
+         "Properties": {
+            "AssumeRolePolicyDocument": {
+               "Version": "2012-10-17",
+               "Statement": [
+                  {
+                     "Effect": "Allow",
+                     "Principal": {
+                        "Service": [
+                           "edgelambda.amazonaws.com",
+                           "lambda.amazonaws.com",
+                           "replicator.lambda.amazonaws.com"
+                        ]
+                     },
+                     "Action": [
+                        "sts:AssumeRole"
+                     ]
+                  }
+               ]
+            },
+            "Policies": [
+               {
+                  "PolicyName": "ParameterStoreAccess",
+                  "PolicyDocument": {
+                     "Version": "2012-10-17",
+                     "Statement": [
+                        {
+                           "Effect": "Allow",
+                           "Action": [
+                              "xray:PutTraceSegments",
+                              "xray:PutTelemetryRecords",
+                              "lambda:GetFunction",
+                              "lambda:EnableReplication*",
+                              "lambda:InvokeFunction",
+                              "logs:CreateLogGroup",
+                              "logs:CreateLogStream",
+                              "logs:PutLogEvents"
+                           ],
+                           "Resource":"*"
+                        }
+                     ]
+                  }
+               }
+            ]
+         }
+      }
+  
+   }
+}
+
+   

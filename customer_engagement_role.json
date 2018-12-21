@@ -1,0 +1,127 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "AAB AWS IAM Customer Engagement Role",
+  "Outputs": {
+    "IamRoleAabCustomerEngagement": {
+      "Description": "Role for Customer engagement",
+      "Value": {
+        "Fn::GetAtt": [
+          "IamRoleAabCustomerEngagement",
+          "Arn"
+        ]
+      }
+    }
+  },
+  "Resources": {
+    "IamRoleAabCustomerEngagement": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": [
+                  "arn:aws:iam::512579018107:root",
+                  {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:aws:iam::",
+                        {
+                          "Ref": "AWS::AccountId"
+                        },
+                        ":root"
+                      ]
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/AWSCodeCommitReadOnly",
+          "arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess"
+        ],
+        "RoleName": "aab-customerengagement"
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "IAMPolicyforCustomerEngagementRole": {
+      "Properties": {
+        "Description": "aab-customerengagement-role-policy-adds-permission-to-create-codecommit-repos",
+        "ManagedPolicyName": "aab-customer-engagement-role-policy",
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "codecommit:BatchGet*",
+                "codecommit:Get*",
+                "codecommit:List*",
+                "codecommit:CreateBranch",
+                "codecommit:CreatePullRequest",
+                "codecommit:CreateRepository",
+                "codecommit:DeleteBranch",
+                "codecommit:Describe*",
+                "codecommit:Put*",
+                "codecommit:Post*",
+                "codecommit:Merge*",
+                "codecommit:Test*",
+                "codecommit:Update*",
+                "codecommit:GitPull",
+                "codecommit:CancelUploadArchive",
+                "codecommit:GitPush"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                "*"
+              ],
+              "Sid": "CodeCommitAccessPolicy"
+            },
+            {
+              "Sid": "DenyUpdatingPlatformDevRepos",
+              "Action": [
+                "codecommit:CreateBranch",
+                "codecommit:CreatePullRequest",
+                "codecommit:CreateRepository",
+                "codecommit:DeleteBranch",
+                "codecommit:DeleteCommentContent",
+                "codecommit:DeleteRepository",
+                "codecommit:GitPush",
+                "codecommit:MergePullRequestByFastForward",
+                "codecommit:PostCommentForComparedCommit",
+                "codecommit:PostCommentForPullRequest",
+                "codecommit:PostCommentReply",
+                "codecommit:PutFile",
+                "codecommit:PutRepositoryTriggers",
+                "codecommit:TestRepositoryTriggers",
+                "codecommit:UpdateComment",
+                "codecommit:UpdateDefaultBranch",
+                "codecommit:UpdatePullRequestDescription",
+                "codecommit:UpdatePullRequestStatus",
+                "codecommit:UpdatePullRequestTitle",
+                "codecommit:UpdateRepositoryDescription",
+                "codecommit:UpdateRepositoryName",
+                "codecommit:UploadArchive"
+              ],
+              "Effect": "Deny",
+              "Resource": [
+                "arn:aws:codecommit:eu-west-1:913545700946:aab-*",
+                "arn:aws:codecommit:eu-west-1:913545700946:samltoawsstskeys"
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "Roles": [
+          {
+            "Ref": "IamRoleAabCustomerEngagement"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::ManagedPolicy"
+    }
+  }
+}

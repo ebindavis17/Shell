@@ -1,0 +1,258 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "AAB AWS Deploy Windows bastion host",
+    "Parameters": {
+        "SimpleAdAdministratorPassword": {
+            "Description": "The password for the Simple AD Administrator user",
+            "Type": "String"
+        },
+        "ImageId": {
+            "Description": "The AMI ID used to launch Windows bastion instances",
+            "Type": "AWS::EC2::Image::Id",
+            "Default": "ami-bca5ba56"
+        },
+        "AutoScalingDesiredCount": {
+            "Description": "The number of desired instances",
+            "Type": "Number",
+            "Default": "1",
+            "MinValue": "0",
+            "MaxValue": "20"
+        },
+        "AutoScalingMinCount": {
+            "Description": "The minimum number of desired instances",
+            "Type": "Number",
+            "Default": "1",
+            "MinValue": "0",
+            "MaxValue": "20"
+        },
+        "AutoScalingMaxCount": {
+            "Description": "The maximum number of instances",
+            "Type": "Number",
+            "Default": "1",
+            "MinValue": "0",
+            "MaxValue": "20"
+        },
+        "VpcId": {
+            "Description": "VPC id to be used",
+            "Type": "String",
+            "Default": "vpc-bc6917da"
+        }
+    },
+    "Resources": {
+        "BastionHostInstanceRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "ec2.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "ManagedPolicyArns": [
+                    "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM",
+                    "arn:aws:iam::aws:policy/AmazonSSMFullAccess"
+                ],
+                "RoleName": "aab-windowsbastionhost"
+            }
+        },
+        "BastionHostInstanceProfile": {
+            "Type": "AWS::IAM::InstanceProfile",
+            "Properties": {
+                "Path": "/",
+                "Roles": [
+                    {
+                        "Ref": "BastionHostInstanceRole"
+                    }
+                ]
+            }
+        },
+        "SecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "AllowELBtoBastionHost",
+                "SecurityGroupEgress": [
+                    {
+                        "IpProtocol": "-1",
+                        "FromPort": "-1",
+                        "ToPort": "-1",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ],
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "6",
+                        "FromPort": "3389",
+                        "ToPort": "3389",
+                        "SourceSecurityGroupId": {
+                            "Fn::GetAtt": [
+                                "ELBSecurityGroup",
+                                "GroupId"
+                            ]
+                        }
+                    },
+                    {
+                        "IpProtocol": "1",
+                        "FromPort": "-1",
+                        "ToPort": "-1",
+                        "SourceSecurityGroupId": {
+                            "Fn::GetAtt": [
+                                "ELBSecurityGroup",
+                                "GroupId"
+                            ]
+                        }
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "VpcId"
+                }
+            }
+        },
+        "BastionLoadBalancerPrivate": {
+            "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+            "Properties": {
+                "AccessLoggingPolicy": {
+                    "EmitInterval": 5,
+                    "Enabled": true,
+                    "S3BucketName": "aab-sharedsvcsp-alb-logging"
+                },
+                "ConnectionSettings": {
+                    "IdleTimeout": 600
+                },
+                "CrossZone": true,
+                "HealthCheck": {
+                    "HealthyThreshold": "2",
+                    "Interval": "10",
+                    "Target": "TCP:3389",
+                    "Timeout": "5",
+                    "UnhealthyThreshold": "2"
+                },
+                "LoadBalancerName": "windowsbastionhostprivate",
+                "Listeners": [
+                    {
+                        "InstancePort": "3389",
+                        "InstanceProtocol": "TCP",
+                        "LoadBalancerPort": "3389",
+                        "Protocol": "TCP"
+                    }
+                ],
+                "Scheme": "internal",
+                "SecurityGroups": [
+                    {
+                        "Ref": "ELBSecurityGroup"
+                    }
+                ],
+                "Subnets": [
+                    "subnet-99b14ec3",
+                    "subnet-0c55e86a",
+                    "subnet-fad15cb2"
+                ]
+            }
+        },
+        "ELBSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "AllowBastionHost",
+                "SecurityGroupEgress": [
+                    {
+                        "IpProtocol": "-1",
+                        "FromPort": "-1",
+                        "ToPort": "-1",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ],
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "6",
+                        "FromPort": "3389",
+                        "ToPort": "3389",
+                        "CidrIp": "10.0.0.0/8"
+                    },
+                    {
+                        "IpProtocol": "1",
+                        "FromPort": "-1",
+                        "ToPort": "-1",
+                        "CidrIp": "10.0.0.0/8"
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "VpcId"
+                }
+            }
+        },
+        "AutoScalingGroup": {
+            "UpdatePolicy": {
+                "AutoScalingReplacingUpdate": {
+                    "WillReplace": "true"
+                },
+                "AutoScalingRollingUpdate": {
+                    "PauseTime": "PT10M",
+                    "SuspendProcesses": [
+                        "AlarmNotification"
+                    ]
+                }
+            },
+            "Type": "AWS::AutoScaling::AutoScalingGroup",
+            "Properties": {
+                "LaunchConfigurationName": {
+                    "Ref": "LaunchConfig"
+                },
+                "DesiredCapacity": {
+                    "Ref": "AutoScalingDesiredCount"
+                },
+                "MinSize": {
+                    "Ref": "AutoScalingMinCount"
+                },
+                "MaxSize": {
+                    "Ref": "AutoScalingMaxCount"
+                },
+                "LoadBalancerNames": [
+                    {
+                        "Ref": "BastionLoadBalancerPrivate"
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Ref": "AWS::StackName"
+                        },
+                        "PropagateAtLaunch": "True"
+                    }
+                ],
+                "VPCZoneIdentifier": [
+                    "subnet-99b14ec3",
+                    "subnet-0c55e86a",
+                    "subnet-fad15cb2"
+                ]
+            }
+        },
+        "LaunchConfig": {
+            "Type": "AWS::AutoScaling::LaunchConfiguration",
+            "Properties": {
+                "ImageId": {
+                    "Ref": "ImageId"
+                },
+                "SecurityGroups": [
+                    {
+                        "Ref": "SecurityGroup"
+                    }
+                ],
+                "IamInstanceProfile": {
+                    "Ref": "BastionHostInstanceProfile"
+                },
+                "InstanceMonitoring": "true",
+                "InstanceType": "t2.large"
+            }
+        }
+    }
+}
